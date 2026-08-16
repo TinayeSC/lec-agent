@@ -3,10 +3,10 @@ import datetime
 from pathlib import Path
 import subprocess
 
-from llm import query_model
-from state import update_state
+# from llm import query_model
+# from state import update_state
 from validator import validate_decision
-from tools import execute_tool 
+# from tools import execute_tool 
 
 
 DOC_NAMES = ("AGENTS.md", "README.md", "pyproject.toml", "package.json")
@@ -36,7 +36,7 @@ IGNORED_PATH_NAMES = {".git", ".mini-coding-agent", "__pycache__", ".pytest_cach
 #### 1) Live Repo Context ####
 ##############################
 def now():
-    return datetime.now(datetime.timezone.utc).isoformat()
+    return datetime.datetime.now(datetime.timezone.utc).isoformat()
 
 
 # Supporting helper for component 4 (context reduction and output management).
@@ -116,18 +116,18 @@ class WorkspaceContext:
 
 
 
-class Agent:
+# class Agent:
 
-    def run(self,task,finished):
-        while not finished:
+#     def run(self,task,finished):
+#         while not finished:
 
-            decision = query_model(task)
+#             decision = query_model(task)
 
-            validate_decision(decision)
+#             validate_decision(decision)
 
-            result = execute_tool(decision)
+#             result = execute_tool(decision)
 
-            update_state(result)
+#             update_state(result)
 
-            #decide what happens next
+#             #decide what happens next
     
