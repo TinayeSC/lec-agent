@@ -3,131 +3,102 @@ import datetime
 from pathlib import Path
 import subprocess
 
+import llm 
+import tools
+import validator 
+import argparse
+import random 
+
+
 # from llm import query_model
 # from state import update_state
 from validator import validate_decision
 # from tools import execute_tool 
 
+agent_names = ["Bob", "Dave", "Shane"]
 
-DOC_NAMES = ("AGENTS.md", "README.md", "pyproject.toml", "package.json")
-HELP_TEXT = "/help, /memory, /session, /reset, /exit"
-WELCOME_ART = (
-    "/\\     /\\\\",
-    "{  `---'  }",
-    "{  O   O  }",
-    "~~>  V  <~~",
-    "\\\\  \\|/  /",
-    "`-----'__",
-)
-HELP_DETAILS = "\n".join(
-    [
-        "Commands:",
-        "/help    Show this help message.",
-        "/memory  Show the agent's distilled working memory.",
-        "/session Show the path to the saved session file.",
-        "/reset   Clear the current session history and memory.",
-        "/exit    Exit the agent.",
-    ]
-)
-MAX_TOOL_OUTPUT = 4000
-MAX_HISTORY = 12000
-IGNORED_PATH_NAMES = {".git", ".mini-coding-agent", "__pycache__", ".pytest_cache", ".ruff_cache", ".venv", "venv"}
-##############################
-#### 1) Live Repo Context ####
-##############################
 def now():
     return datetime.datetime.now(datetime.timezone.utc).isoformat()
 
+class Agent:
+    def __init__(self):
+        self.session = ""
+        self.name = random.choice(agent_names)
+        self.session_start = now()
 
-# Supporting helper for component 4 (context reduction and output management).
-def clip(text, limit=MAX_TOOL_OUTPUT):
-    text = str(text)
-    if len(text) <= limit:
-        return text
-    return text[:limit] + f"\n...[truncated {len(text) - limit} chars]"
+    def run(self,task):
+        task_complete = False
+        while True:
 
+            self.session += f"Timestamp: {now()}\n"
+                    
+                        
+            reply = llm.query_model(task,self.session)
 
-class WorkspaceContext:
-    def __init__(self, cwd, repo_root, branch, default_branch, status, recent_commits, project_docs):
-        self.cwd = cwd
-        self.repo_root = repo_root
-        self.branch = branch
-        self.default_branch = default_branch
-        self.status = status
-        self.recent_commits = recent_commits
-        self.project_docs = project_docs
+           
 
-    @classmethod
-    def build(cls, cwd):
-        cwd = Path(cwd).resolve()
+            valid, response = validate_decision(reply)
+            # print("Validator: "
+            #             f"{valid}\n"
+            #             f"{response}")
+            if not valid:
+                  return response 
+            
+            # print(f"Applying tool: {response}")
+                        
+            result = tools.apply_tool(response)  
+            
+            self.session += f"""
 
-        def git(args, fallback=""):
-            try:
-                result = subprocess.run(
-                    ["git", *args],
-                    cwd=cwd,
-                    capture_output=True,
-                    text=True,
-                    check=True,
-                    timeout=5,
-                )
-                return result.stdout.strip() or fallback
-            except Exception:
-                return fallback
+User task: {task}
+Agent decision: {reply}
+Tool result: {result}
 
-        repo_root = Path(git(["rev-parse", "--show-toplevel"], str(cwd))).resolve()
-        docs = {}
-        for base in (repo_root, cwd):
-            for name in DOC_NAMES:
-                path = base / name
-                if not path.exists():
-                    continue
-                key = str(path.relative_to(repo_root))
-                if key in docs:
-                    continue
-                docs[key] = clip(path.read_text(encoding="utf-8", errors="replace"), 1200)
+                            """
+            
+            self.save_session()
 
-        return cls(
-            cwd=str(cwd),
-            repo_root=str(repo_root),
-            branch=git(["branch", "--show-current"], "-") or "-",
-            default_branch=(git(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], "origin/main") or "origin/main").removeprefix("origin/"),
-            status=clip(git(["status", "--short"], "clean") or "clean", 1500),
-            recent_commits=[line for line in git(["log", "--oneline", "-5"]).splitlines() if line],
-            project_docs=docs,
-        )
+            if result.get("success") and result.get("stop"):
+                        if "message" in result:
+                            print(result["message"])
+                        task_complete = True
+                        break
 
-    def text(self):
-        commits = "\n".join(f"- {line}" for line in self.recent_commits) or "- none"
-        docs = "\n".join(f"- {path}\n{snippet}" for path, snippet in self.project_docs.items()) or "- none"
-        return "\n".join([
-            "Workspace:",
-            f"- cwd: {self.cwd}",
-            f"- repo_root: {self.repo_root}",
-            f"- branch: {self.branch}",
-            f"- default_branch: {self.default_branch}",
-            "- status:",
-            self.status,
-            "- recent_commits:",
-            commits,
-            "- project_docs:",
-            docs,
-        ])
+            if "display" in result and "message" in result:
+                                    print(result["message"])
 
+            if result.get("stop"):
+                  task_complete = False
+                  break
 
+            if not result.get("success"):
+                   task_complete = False
+                   break
 
-# class Agent:
+            if result.get("success"):
+                   task_complete = True
+                   break
+    
+            
+       
 
-#     def run(self,task,finished):
-#         while not finished:
+        return task_complete
 
-#             decision = query_model(task)
+            
 
-#             validate_decision(decision)
+    def save_session(self):
+         # git can't track an empty dir, so a fresh clone has no SessionMemory/
+         Path("SessionMemory").mkdir(exist_ok=True)
+         with open(f"SessionMemory/{self.name}_session_{self.session_start}.txt","w") as f:
+              f.writelines(self.session)
 
-#             result = execute_tool(decision)
+    def load_session(self,filepath):
+          session = ""
+          with open(filepath,"r") as f:
+                for line in f.lines():
+                      session += line
+          self.session += session
+          f.close()
 
-#             update_state(result)
-
-#             #decide what happens next
+        
     

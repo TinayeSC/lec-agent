@@ -1,2 +1,9 @@
 __pycache__
 .venv
+
+SessionMemory/*
+
+# live warehouse state — created from warehouse.seed.json on first run.
+# The seed IS committed; this is not, so a clone always starts clean.
+warehouse.json
+warehouse.tmp

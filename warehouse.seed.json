@@ -1,0 +1,8 @@
+{
+  "_note": "Starting warehouse state. This used to be a dict literal in tools.py, which meant inventory reset every launch while processed_ids.txt kept persisting. It now lives on disk so both halves of the agent's state survive a restart. This file is the committed seed and is never written to: on first run tools.load_warehouse() copies it to warehouse.json (gitignored), and all mutations go there. Delete warehouse.json to reset the demo. JSON has no comment syntax, so this note is a key -- load_warehouse() drops any key starting with an underscore.",
+
+  "APPLES":  {"quantity": 100, "expiry": "2026-08-20"},
+  "BANANAS": {"quantity": 50,  "expiry": "2026-08-18"},
+  "GRAPES": {"quantity": 150,  "expiry": "2026-09-18"},
+  "MANDARINS": {"quantity": 200,  "expiry": "2026-09-01"}
+}
