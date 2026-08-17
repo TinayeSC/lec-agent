@@ -8,8 +8,8 @@ local LLM (`qwen3:8b` via Ollama) purely as a *router*, never as an authority.
 Built for the LEC AI AI-Engineering-Intern assessment.
 
 > **Disclaimer:** this README was written with the help of AI. The code was
-> written by me with AI assistance in places, which is marked inline in the
-> source (see the `#----- AI WRITTEN FUNCTIONS -----` and
+> written by me with AI assistance in clearly labeled places, marked inline in
+> each file (see the `#----- AI WRITTEN FUNCTIONS -----` and
 > `#----- CLAUDE CHAT CREATED SKELETON AND REGEX -----` banners in `tools.py`
 > and `validator.py`). Everything here is something I can explain and defend.
 
