@@ -13,6 +13,14 @@ Built for the LEC AI AI-Engineering-Intern assessment.
 > `#----- CLAUDE CHAT CREATED SKELETON AND REGEX -----` banners in `tools.py`
 > and `validator.py`). Everything here is something I can explain and defend.
 
+> **Note:** special thanks to Sebastian Raschka, PhD.
+> His Build A Large Language Model (From Scratch) helped remove that daunting aspect 
+> of LLMs and allowed me to understand them well enough to write my dissertation topic 
+> on them. I reused and repurposed code from this guide as well as following his blog 
+> post "Components of A Coding Agent" which was instrumental considering I wasn't 
+> 100% sure of how agents worked despite working extensively with them in the past.  
+
+
 ---
 
 ## Running it

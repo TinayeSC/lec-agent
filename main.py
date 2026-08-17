@@ -1,5 +1,5 @@
 
-from agent import Agent
+from agent import Agent, Outcome
 from validator import validate_task,log_task_event,save_processed_ids,load_processed_ids
 from pathlib import Path
 import tools
@@ -7,6 +7,9 @@ import docs
 import json
 
 
+FAILED = 0 
+SUCCEEDED = 1 
+UNDEFINED = 3
 
 #Welcome Art Created by Claude
 WELCOME_ART = (
@@ -35,20 +38,10 @@ HELP_DETAILS = "\n".join(
         "/feed    Run the untrusted feed through an Agent (Agent won't stop iterating through feed tasks).",
         "/usage   Show a README section. '/usage' lists them, '/usage 4' or '/usage sanitisation' jumps straight there.",
         "/reset   Restore the warehouse from seed and clear processed ids.",
-        "/load    Opens a dialogue to load a session memory.",
-        "/set     Opens dialogue to load processed ids.",
         "/help    Displays available commands.",
         "/exit    Exit the agent.",
     ]
 )
-
-warehouse = {
-    "APPLES": {"quantity": 100, "expiry": "2026-08-20"},
-    "BANANAS": {"quantity": 50, "expiry": "2026-08-18"},
-    
-}
-
-
 
 
 def process_feed(feed_path, agent, processed_ids):
@@ -81,19 +74,27 @@ def process_feed(feed_path, agent, processed_ids):
 
     print(f"\n  Polling feed — {len(valid_tasks)} task(s) passed validation\n")
     for task in valid_tasks:
-        outcome, attempt = False, 0
+        outcome, attempt = Outcome.FAILED, 0
         for attempt in range(1, 3):
             outcome = agent.run(task["action"])
-            if outcome:
+            # SUCCEEDED is done; UNDEFINED will answer the same way forever
+            if outcome in (Outcome.SUCCEEDED, Outcome.UNDEFINED):
                 break
-            print(f"  ↻ retry {attempt}/2 — {task['id']}")
+            if attempt < 2:
+                print(f"  ↻ retry {attempt}/2 — {task['id']}")
+
+        status = {
+            Outcome.SUCCEEDED: "EXECUTED",
+            Outcome.UNDEFINED: "UNSUPPORTED",
+            Outcome.FAILED: "ESCALATED",
+        }[outcome]
         processed_ids.append(task["id"])
-        log_task_event("EXECUTED" if outcome else "ESCALATED", task, "", attempt)
+        log_task_event(status, task, "", attempt)
 
     save_processed_ids(processed_ids)
     print(f"\n  Poll complete — {len(processed_ids)} task(s) processed to date\n")
 
-agent = Agent("Bob")
+agent = Agent()
 print("\033[36m" + "\n".join(WELCOME_ART) + "\033[0m")
 print("\033[36m" + (HELP_DETAILS) + "\033[0m")
 print("\033[36m" + f"Hey I am {agent.name} your Warehouse Agent. What can I help you with? " + "\033[0m")
@@ -137,24 +138,27 @@ while True:
                  print(f"\n  {problem}\n")
                  continue
              print(docs.render(title, sections[title]))
-        elif prompt.lower() in {"/load"}:
-                    path = input("\033[36m" + "Enter A Filename To Load a Previous Session Memory→ "+ "\033[0m").strip()
-                    with open(path,"r") as f:
-                         print(" ")
-        elif prompt.lower() in {"/set"}:
-                            path = input("\033[36m" + "Enter Numbers Seperated by space (e.g 17 18 19) to add to processed IDs→ "+ "\033[0m").strip()
-                            with open(path,"r") as f:
-                                 print(" ")
+        elif prompt.lower() in {"/load","/set"}:
+             # planned, not built — kept out of HELP_DETAILS so the menu only
+             # advertises what actually works
+             print("\n  Not implemented yet.\n")
+             continue
 
         
         
         else:
-            for attempt in range(0,2):
-                result = agent.run(prompt)
-                if result:
+            for attempt in range(1, 3):
+                outcome = agent.run(prompt)
+                if outcome == Outcome.SUCCEEDED:
                     break
+                if outcome == Outcome.UNDEFINED:
+                    # a definite "no" — retrying would ask the same question
+                    print("  ⚠ Not something I can do with the tools I have — not retrying.\n")
+                    break
+                if attempt < 2:
+                    print(f"  ↻ retry {attempt}/2")
                 else:
-                    print(f"Attempt {attempt+1}/3")
+                    print("  ! Giving up after 2 attempts — escalating.\n")
 
          
 

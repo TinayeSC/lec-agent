@@ -114,7 +114,8 @@ def validate_task(raw_task):
     return {"status": "valid", "task": {"id": task_id, "action": action, "priority": priority}}
 
 
-STATUS_MARK = {"EXECUTED": "✓", "REJECTED": "✗", "QUARANTINED": "⚠", "ESCALATED": "!"}
+STATUS_MARK = {"EXECUTED": "✓", "REJECTED": "✗", "QUARANTINED": "⚠",
+               "ESCALATED": "!", "UNSUPPORTED": "⊘"}
 
 
 def log_task_event(status, task, reason, attempts=0):
